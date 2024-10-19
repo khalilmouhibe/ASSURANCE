@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur de Retraite</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+    <h1>Simulateur de Retraite</h1>
+
+
+    <div id="result" class="mt-4" style="display:none;">
+        <h3>Résultat</h3>
+        <p>Vos économies à la retraite seront de : <span id="totalEpargne"></span> €</p>
+    </div>
+</div>
+<!-- Bouton pour simuler la retraite -->
+<button id="simulerBtn" class="btn btn-primary mt-3">Simuler ma retraite</button>
+<script>
+    document.getElementById("simulerBtn").addEventListener("click", function() {
+        fetch("/simuler", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            }
+        })
+            .then(response => response.json()) // Récupérer la réponse en JSON
+            .then(data => {
+                // Afficher le résultat dans la page HTML
+                document.getElementById("totalEpargne").innerText = data;
+                document.getElementById("result").style.display = "block"; // Afficher le div résultat
+            })
+            .catch(error => console.error("Erreur lors de la simulation:", error));
+    });
+</script>
+
+
+</body>
+</html>
