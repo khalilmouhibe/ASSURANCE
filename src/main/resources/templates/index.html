@@ -16,25 +16,109 @@
         <p>Vos économies à la retraite seront de : <span id="totalEpargne"></span> €</p>
     </div>
 </div>
-<!-- Bouton pour simuler la retraite -->
-<button id="simulerBtn" class="btn btn-primary mt-3">Simuler ma retraite</button>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulation</title>
+</head>
+<body>
+<h2>Formulaire de Simulation</h2>
+
+<!-- Formulaire avec les champs requis -->
+<form id="simulationForm">
+    <label for="dateNaissance">Date de Naissance:</label>
+    <input type="date" id="dateNaissance" name="dateNaissance" required><br>
+
+    <label for="nom">Nom:</label>
+    <input type="text" id="nom" name="nom" required><br>
+
+    <label for="prenom">Prénom:</label>
+    <input type="text" id="prenom" name="prenom" required><br>
+
+    <label for="sexe">Sexe:</label>
+    <select id="sexe" name="sexe" required>
+        <option value="1">Homme</option>
+        <option value="2">Femme</option>
+    </select><br>
+
+    <label for="ageDepMois">Âge de départ (en mois):</label>
+    <input type="number" id="ageDepMois" name="ageDepMois" required><br>
+
+    <label for="nbEnfants">Nombre d'enfants:</label>
+    <input type="number" id="nbEnfants" name="nbEnfants" required><br>
+
+    <label for="dateRetraiteSouhait">Date de retraite souhaitée:</label>
+    <input type="date" id="dateRetraiteSouhait" name="dateRetraiteSouhait"><br>
+
+    <label for="SAM">Salaire Annuel Moyen (SAM):</label>
+    <input type="number" id="SAM" name="SAM" required><br>
+
+    <label for="trimestrePartage">Trimestre Partagé:</label>
+    <input type="checkbox" id="trimestrePartage" name="trimestrePartage"><br>
+
+    <label for="nbEnfantsPartages">Nombre d'enfants partagés:</label>
+    <input type="number" id="nbEnfantsPartages" name="nbEnfantsPartages"><br>
+
+    <label for="trimValide">Trimestres Valides:</label>
+    <input type="number" id="trimValide" name="trimValide"><br>
+
+    <label for="trimRequis">Trimestres Requis:</label>
+    <input type="number" id="trimRequis" name="trimRequis"><br>
+
+    <label for="trimHandicap">Trimestres Handicap:</label>
+    <input type="number" id="trimHandicap" name="trimHandicap"><br>
+
+
+</form>
+
+<!-- Affichage du résultat -->
+
+
+<!-- Script JavaScript pour envoyer les données -->
 <script>
     document.getElementById("simulerBtn").addEventListener("click", function() {
+        // Récupérer les valeurs des champs du formulaire
+        const formData = {
+            dateNaissance: document.getElementById("dateNaissance").value,
+            nom: document.getElementById("nom").value,
+            prenom: document.getElementById("prenom").value,
+            sexe: parseInt(document.getElementById("sexe").value),
+            ageDepMois: parseInt(document.getElementById("ageDepMois").value),
+            nbEnfants: parseInt(document.getElementById("nbEnfants").value),
+            dateRetraiteSouhait: document.getElementById("dateRetraiteSouhait").value,
+            SAM: parseInt(document.getElementById("SAM").value),
+            trimestrePartage: document.getElementById("trimestrePartage").checked,
+            nbEnfantsPartages: parseInt(document.getElementById("nbEnfantsPartages").value),
+            trimValide: parseInt(document.getElementById("trimValide").value),
+            trimRequis: parseInt(document.getElementById("trimRequis").value),
+            trimHandicap: parseInt(document.getElementById("trimHandicap").value)
+        };
+
+        // Envoyer les données au serveur
         fetch("/simuler", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
-            }
+            },
+            body: JSON.stringify(formData)
         })
-            .then(response => response.json()) // Récupérer la réponse en JSON
+            .then(response => response.json())
             .then(data => {
                 // Afficher le résultat dans la page HTML
-                document.getElementById("totalEpargne").innerText = data;
+                document.getElementById("totalEpargne").innerText = data.totalEpargne; // Suppose que data a une clé 'totalEpargne'
                 document.getElementById("result").style.display = "block"; // Afficher le div résultat
             })
             .catch(error => console.error("Erreur lors de la simulation:", error));
     });
 </script>
+</body>
+</html>
+
+<!-- Bouton pour simuler la retraite -->
+<button id="simulerBtn" class="btn btn-primary mt-3">Simuler ma retraite</button>
+
 
 
 </body>
