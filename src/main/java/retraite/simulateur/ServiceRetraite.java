@@ -13,10 +13,11 @@ public class ServiceRetraite {
 // DONE max 1 pour la fraction des trimestres
 // DONE décote du taux
 
+    //TODO Rajouter date de retraite souhaitée
     // TODO taux plein automatique à 67 ans
     // TODO surcote (trimestres travaillés après l'age de départ à la retraite)
     // TODO enfants
-    // TODO Si vous avez eu au moins 3 enfants, le montant de votre pension de retraite de l'Assurance retraite est majoré de 10
+    // TODO Si vous avez eu au moins 3 enfants, le montant de votre pension de retraite de l'Assurance retraite est majoré de 10%
     // TODO gérer exceptions et valeurs manquantes
     public double calculerEpargneRetraite(Adherent adherent) {
         int nbTrimestresManquants = calculerTrimestresManquants(adherent.getDateNaissance(), adherent.getTrimValide());
