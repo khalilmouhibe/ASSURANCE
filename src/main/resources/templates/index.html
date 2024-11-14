@@ -3,24 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulateur de Retraite</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/4.5.2/css/bootstrap.min.css">
-</head>
-<body>
-<div class="container mt-5">
-    <h1>Simulateur de Retraite</h1>
-
-
-    <div id="result" class="mt-4" style="display:none;">
-        <h3>Résultat</h3>
-        <p>Vos économies à la retraite seront de : <span id="totalEpargne"></span> €</p>
-    </div>
-</div>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulation</title>
 </head>
 <body>
@@ -74,12 +56,18 @@
 </form>
 
 <!-- Affichage du résultat -->
+<div id="result" class="mt-4" style="display:none;">
+    <h3>Résultat</h3>
+    <p>Vos économies à la retraite seront de : <span id="totalEpargne"></span> € par an</p>
+</div>
 
+<button id="simulerBtn" class="btn btn-primary mt-3">Simuler ma retraite</button>
+</div>
 
-<!-- Script JavaScript pour envoyer les données -->
 <script>
-    document.getElementById("simulerBtn").addEventListener("click", function() {
-        // Récupérer les valeurs des champs du formulaire
+    document.getElementById("simulerBtn").addEventListener("click", function(event) {
+        event.preventDefault(); // Empêche le rechargement de la page
+
         const formData = {
             dateNaissance: document.getElementById("dateNaissance").value,
             nom: document.getElementById("nom").value,
@@ -95,8 +83,7 @@
             trimRequis: parseInt(document.getElementById("trimRequis").value),
             trimHandicap: parseInt(document.getElementById("trimHandicap").value)
         };
-
-        // Envoyer les données au serveur
+        console.log(formData);
         fetch("/simuler", {
             method: "POST",
             headers: {
@@ -106,20 +93,11 @@
         })
             .then(response => response.json())
             .then(data => {
-                // Afficher le résultat dans la page HTML
-                document.getElementById("totalEpargne").innerText = data.totalEpargne; // Suppose que data a une clé 'totalEpargne'
-                document.getElementById("result").style.display = "block"; // Afficher le div résultat
+                document.getElementById("totalEpargne").innerText = data; // Affiche le résultat
+                document.getElementById("result").style.display = "block";
             })
             .catch(error => console.error("Erreur lors de la simulation:", error));
     });
 </script>
-</body>
-</html>
-
-<!-- Bouton pour simuler la retraite -->
-<button id="simulerBtn" class="btn btn-primary mt-3">Simuler ma retraite</button>
-
-
-
 </body>
 </html>
