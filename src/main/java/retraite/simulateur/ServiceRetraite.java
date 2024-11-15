@@ -12,19 +12,46 @@ import java.util.Date;
 public class ServiceRetraite {
 // DONE max 1 pour la fraction des trimestres
 // DONE décote du taux
+// DONE Rajouter date de retraite souhaitée
+// DONE Si vous avez eu au moins 3 enfants, le montant de votre pension de retraite de l'Assurance retraite est majoré de 10%
+    // DONE surcote (trimestres travaillés après l'age de départ à la retraite)
+    // FIXME Il n'y a pour l'instant pas de vérification de quels trimestres ont été cotisés après l'âge de départ à la retraite
+// DONE decote pour partir avant l'age de retraite
 
-    //TODO Rajouter date de retraite souhaitée
-    // TODO taux plein automatique à 67 ans
-    // TODO surcote (trimestres travaillés après l'age de départ à la retraite)
-    // TODO enfants
-    // TODO Si vous avez eu au moins 3 enfants, le montant de votre pension de retraite de l'Assurance retraite est majoré de 10%
+    // TODO enfants (pour chaque enfant, savoir maternité et éducation)
+    // TODO taux plein automatique à 67 ans (cocher une case qui enclenche ce mode de calcul différent)
+    // TODO handicapés
+    // TODO carriere longue ()
     // TODO gérer exceptions et valeurs manquantes
     public double calculerEpargneRetraite(Adherent adherent) {
-        int nbTrimestresManquants = calculerTrimestresManquants(adherent.getDateNaissance(), adherent.getTrimValide());
+        int nbTrimestresManquants = calculerTrimestresManquants(
+                adherent.getDateNaissance(),
+                adherent.getTrimValide(),
+                adherent.getDateRetraiteSouhait()
+        );
         double taux = calculerTaux(nbTrimestresManquants);
-        double fractionTrim =  calculerFractionTrimestres(adherent);
-        double epargneBrute = adherent.getSAM() * taux * fractionTrim;
-        BigDecimal epargneArrondie = BigDecimal.valueOf(epargneBrute).setScale(2, RoundingMode.HALF_UP); // arrondi 2 chiffre après la virgule
+        double fractionTrim = calculerFractionTrimestres(adherent, nbTrimestresManquants);
+
+        // Calculer la décote pour départ avant l'âge légal
+        double decoteAge = calculerDecotePourDepartAnticipe(
+                adherent.getDateNaissance(),
+                adherent.getDateRetraiteSouhait()
+        );
+// TODO enfants
+        // Calcul de la pension brute
+        double epargneBrute = adherent.getSAM() * taux * fractionTrim * decoteAge;
+
+        // Ajouter la surcote si applicable
+        double surcote = calculerSurcote(adherent);
+        epargneBrute *= surcote;
+
+        // Ajouter la majoration pour les enfants si applicable
+        if (adherent.getNbEnfants() >= 3) {
+            epargneBrute *= 1.10; // Majoration de 10% pour 3 enfants ou plus
+        }
+
+        // Arrondir le montant final
+        BigDecimal epargneArrondie = BigDecimal.valueOf(epargneBrute).setScale(2, RoundingMode.HALF_UP);
         return epargneArrondie.doubleValue();
     }
 
@@ -77,11 +104,41 @@ public class ServiceRetraite {
         }
     }
 
-    public int calculerTrimestresManquants(Date dateNaissance, int nbTrimValide) {
-        int trimestresRequis = calculerTrimestresRequis(dateNaissance);
-        return Math.max(trimestresRequis - nbTrimValide, 0);
+    public int calculerTrimestresEntreDates(Date dateDebut, Date dateFin) {
+        // Convertir les dates en LocalDate
+        LocalDate debut = new java.sql.Date(dateDebut.getTime()).toLocalDate();
+        LocalDate fin = new java.sql.Date(dateFin.getTime()).toLocalDate();
+
+        // Vérifier que la date de fin est postérieure à la date de début
+        if (!fin.isAfter(debut)) {
+            return 0;
+        }
+        // Calculer les trimestres civils entre les deux dates
+        int trimestres = 0;
+        // Parcourir les mois entre les deux dates
+        while (debut.isBefore(fin)) {
+            int mois = debut.getMonthValue();
+            // Si le mois est le dernier d'un trimestre civil, ajouter un trimestre
+            if (mois == 3 || mois == 6 || mois == 9 || mois == 12) {
+                trimestres++;
+            }
+            // Passer au mois suivant
+            debut = debut.plusMonths(1);
+        }
+        return trimestres;
     }
 
+    public int calculerTrimestresManquants(Date dateNaissance, int nbTrimValide, Date dateRetraiteSouhaitee) {
+        int trimestresRequis = calculerTrimestresRequis(dateNaissance);
+
+        // Ajouter les trimestres entre aujourd'hui et la date de retraite souhaitée si renseignée
+        if (dateRetraiteSouhaitee != null) {
+            int trimestresSup = calculerTrimestresEntreDates(new Date(), dateRetraiteSouhaitee);
+            nbTrimValide += trimestresSup;
+        }
+
+        return Math.max(trimestresRequis - nbTrimValide, 0);
+    }
     public double calculerTaux(int nbTrimestresManquants) {
         double tauxPlein = 0.5; // Taux plein à 50%
         double tauxDecoteParTrimestre = 0.625; // 0.625 de décote du taux par trimestre manquant
@@ -96,11 +153,81 @@ public class ServiceRetraite {
         return Math.max(taux, tauxMinimum);
     }
 
-    public double calculerFractionTrimestres(Adherent adherent){
+    public double calculerFractionTrimestres(Adherent adherent, int nbTrimestresManquants){
         int nbTrimestresRequis = calculerTrimestresRequis(adherent.getDateNaissance());
-        int nbTrimestresValides = adherent.getTrimValide();
-        double fraction = (double) nbTrimestresValides /nbTrimestresRequis;
+        int nbTrimestresValides = nbTrimestresRequis - nbTrimestresManquants; // S'adapte selon la date de départ choisie
+        double fraction = (double) nbTrimestresValides / nbTrimestresRequis;
         fraction = Math.min(1, fraction);
         return fraction;
+    }
+
+    public double calculerSurcote(Adherent adherent) {
+        // Âge légal et trimestres requis
+        LocalDate ageLegal = calculerAgeDepart(adherent.getDateNaissance());
+        int trimestresRequis = calculerTrimestresRequis(adherent.getDateNaissance());
+
+        // Convertir la date de naissance en LocalDate
+        LocalDate dateNaissanceLocal = new java.sql.Date(adherent.getDateNaissance().getTime()).toLocalDate();
+        LocalDate dateRetraiteSouhaitee = new java.sql.Date(adherent.getDateRetraiteSouhait().getTime()).toLocalDate();
+
+        // Vérifier si la personne a atteint l'âge légal et le taux plein
+        if (!dateRetraiteSouhaitee.isAfter(ageLegal)) {
+            return 0; // Pas de surcote si la date de départ est avant l'âge légal
+        }
+
+        int nbTrimestresValides = adherent.getTrimValide();
+        if (nbTrimestresValides < trimestresRequis) {
+            return 0; // Pas de surcote si le taux plein n'est pas atteint
+        }
+
+        // Calculer les trimestres supplémentaires travaillés après le taux plein
+        int trimestresSup = calculerTrimestresEntreDates(java.sql.Date.valueOf(ageLegal), adherent.getDateRetraiteSouhait());
+        double surcote = trimestresSup * 0.0125; // 1,25% par trimestre supplémentaire
+
+        return 1 + surcote;
+    }
+
+    public double calculerDecoteAge(Date dateNaissance, Date dateRetraiteSouhaitee) {
+        LocalDate ageLegal = calculerAgeDepart(dateNaissance); // Âge légal calculé
+        LocalDate ageSouhaite = new java.sql.Date(dateRetraiteSouhaitee.getTime()).toLocalDate();
+        // Calculer la différence en années et mois
+        Period diff = Period.between(ageSouhaite, ageLegal);
+        int trimestresAvantAgeLegal = (diff.getYears() * 12 + diff.getMonths()) / 3; // Convertir en trimestres
+        // Décote par trimestre manquant (1,25% par trimestre, soit 0.0125)
+        double tauxDecoteParTrimestre = 0.0125;
+        return Math.min(trimestresAvantAgeLegal * tauxDecoteParTrimestre, 1); // Limiter à une décote maximale de 100%
+    }
+
+    public double calculerDecotePourDepartAnticipe(Date dateNaissance, Date dateRetraiteSouhaitee) {
+        LocalDate ageLegal = calculerAgeDepart(dateNaissance); // Âge légal calculé
+        LocalDate dateSouhaitee = new java.sql.Date(dateRetraiteSouhaitee.getTime()).toLocalDate();
+
+        if (!dateSouhaitee.isBefore(ageLegal)) {
+            return 1.0; // Pas de décote si la date de départ est à l'âge légal ou après
+        }
+
+        // Calculer la différence en trimestres avant l'âge légal
+        Period diff = Period.between(dateSouhaitee, ageLegal);
+        int trimestresAvantAgeLegal = Math.abs((diff.getYears() * 12 + diff.getMonths()) / 3); // Convertir en trimestres positifs
+
+        // Décote par trimestre manquant (1,25% par trimestre)
+        double tauxDecoteParTrimestre = 0.0125;
+        double decote = 1 - (trimestresAvantAgeLegal * tauxDecoteParTrimestre);
+
+        return Math.max(decote, 0.0); // S'assurer que la décote ne tombe pas en dessous de 0
+    }
+
+    public int calculerTrimestresParEnfant(Adherent adherent){
+        int nbTrimestresEnfants=0;
+        if (adherent.getSexe()==1){ // Est un homme
+            // + 2 pour l'éducation
+            nbTrimestresEnfants += adherent.getNbEnfants()*2;
+        } else { // Est une femme
+            // + 4 pour l'éducation
+            nbTrimestresEnfants += adherent.getNbEnfants()*4; // FIXME Ajouter des options pour le cas ou les trimestres sont partagés avec le père
+            // + 4 pour la maternité
+            nbTrimestresEnfants += adherent.getNbEnfants()*4;
+        }
+        return nbTrimestresEnfants;
     }
 }
