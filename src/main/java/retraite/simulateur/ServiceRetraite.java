@@ -7,6 +7,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.Date;
+import java.util.List;
 
 @Service
 public class ServiceRetraite {
@@ -18,12 +19,13 @@ public class ServiceRetraite {
     // FIXME Il n'y a pour l'instant pas de vérification de quels trimestres ont été cotisés après l'âge de départ à la retraite
 // DONE decote pour partir avant l'age de retraite
 // DONE taux plein automatique à 67 ans (cocher une case qui enclenche ce mode de calcul différent)
+    // DONE enfants (pour chaque enfant, savoir maternité et éducation)
 
     // TODO handicapés
     // TODO carriere longue ()
     // TODO gérer exceptions et valeurs manquantes
-    // TODO enfants (pour chaque enfant, savoir maternité et éducation)
-    // TODO pouvoir choisir la data à laquelle est faite la simulation
+
+    // TODO pouvoir choisir la date à laquelle est faite la simulation
     public double calculerEpargneRetraite(Adherent adherent) {
         int nbTrimestresManquants = calculerTrimestresManquants(adherent);
         double taux = calculerTaux(adherent, nbTrimestresManquants);
@@ -245,21 +247,31 @@ public class ServiceRetraite {
 
         // Décote par trimestre manquant (1,25% par trimestre)
         double tauxDecoteParTrimestre = 0.0125;
-        double decote = 1 - (trimestresAvantAgeLegal * tauxDecoteParTrimestre);
+        double decote = 1.0 - (trimestresAvantAgeLegal * tauxDecoteParTrimestre);
 
         return Math.max(decote, 0.0); // S'assurer que la décote ne tombe pas en dessous de 0
     }
 
     public int calculerTrimestresParEnfant(Adherent adherent){
         int nbTrimestresEnfants=0;
+        List<Enfant> enfants = adherent.getEnfants();
         if (adherent.getSexe()==1){ // Est un homme
-            // + 2 pour l'éducation
-            nbTrimestresEnfants += adherent.getNbEnfants()*2;
+            for(Enfant e : enfants){
+                if (e.isEducationPartageeEnfant()){
+                    nbTrimestresEnfants += 2;
+                }
+            }
         } else { // Est une femme
-            // + 4 pour l'éducation
-            nbTrimestresEnfants += adherent.getNbEnfants()*4; // FIXME Ajouter des options pour le cas ou les trimestres sont partagés avec le père
-            // + 4 pour la maternité
-            nbTrimestresEnfants += adherent.getNbEnfants()*4;
+            for(Enfant e : enfants){
+                if (e.isMaterniteEnfant()){
+                    nbTrimestresEnfants += 4;
+                }
+                if (e.isEducationPartageeEnfant()){
+                    nbTrimestresEnfants += 2;
+                } else if (e.isEducationEnfant()) {
+                    nbTrimestresEnfants += 4;
+                }
+            }
         }
         return nbTrimestresEnfants;
     }

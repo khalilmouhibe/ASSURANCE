@@ -3,6 +3,7 @@ package retraite.simulateur;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Date;
+import java.util.List;
 
 public class Adherent {
     private Date dateNaissance;
@@ -21,6 +22,7 @@ public class Adherent {
     private int trimHandicap;
     private int methodeTaux;
     private Date dateSimulation = new Date();
+    private List<Enfant> enfants;
 
     public int getMethodeTaux() {
         return methodeTaux;
@@ -142,4 +144,11 @@ public class Adherent {
         this.trimHandicap = trimHandicap;
     }
 
+    public List<Enfant> getEnfants() {
+        return enfants;
+    }
+
+    public void setEnfants(List<Enfant> enfants) {
+        this.enfants = enfants;
+    }
 }

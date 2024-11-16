@@ -93,8 +93,11 @@
 
                 <div class="form-group">
                     <label for="nbEnfants">Nombre d'enfants:</label>
-                    <input type="number" id="nbEnfants" name="nbEnfants" class="form-control" required>
+                    <input type="number" id="nbEnfants" name="nbEnfants" class="form-control" value="0" required onchange="generateChildrenFields()">
                 </div>
+
+                <div id="childrenDetails" class="mt-3"></div>
+
 
                 <div class="form-group">
                     <label for="dateRetraiteSouhait">Date de retraite souhaitée:</label>
@@ -188,6 +191,17 @@
             trimHandicap: parseInt(document.getElementById("trimHandicap").value),
             methodeTaux: parseInt(document.getElementById("methodeTaux").value)
         };
+        const childrenInfo = [];
+        for (let i = 1; i <= formData.nbEnfants; i++) {
+            const child = {
+                educationEnfant: document.getElementById(`educationEnfant${i}`).checked,
+                educationPartageeEnfant: document.getElementById(`educationPartageeEnfant${i}`).checked,
+                materniteEnfant: document.getElementById(`materniteEnfant${i}`) ? document.getElementById(`materniteEnfant${i}`).checked : false
+            };
+            childrenInfo.push(child);
+        }
+
+        formData.enfants = childrenInfo;
         console.log(formData);
         fetch("/simuler", {
             method: "POST",
@@ -205,5 +219,51 @@
             .catch(error => console.error("Erreur lors de la simulation:", error));
     });
 </script>
+
+<script>
+    function generateChildrenFields() {
+        const nbEnfants = parseInt(document.getElementById("nbEnfants").value) || 0;
+        const sexe = document.getElementById("sexe").value; // Récupération du sexe
+        const childrenDetailsDiv = document.getElementById("childrenDetails");
+
+        // Nettoyer le contenu précédent
+        childrenDetailsDiv.innerHTML = "";
+
+        for (let i = 1; i <= nbEnfants; i++) {
+            const childDiv = document.createElement("div");
+            childDiv.classList.add("card", "my-2", "p-3");
+
+            childDiv.innerHTML = `
+                <h5>Enfant ${i}</h5>
+
+
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="educationPartageeEnfant${i}" name="educationPartageeEnfant${i}">
+                    <label class="form-check-label" for="educationPartageeEnfant${i}">Éducation partagée avec le 2e parent</label>
+                </div>
+                ${
+                sexe === "2" // Ajout de la case maternité si le sexe est "Femme"
+                    ? `
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="educationEnfant${i}" name="educationEnfant${i}">
+                            <label class="form-check-label" for="educationEnfant${i}">Éducation assurée</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="materniteEnfant${i}" name="materniteEnfant${i}">
+                            <label class="form-check-label" for="materniteEnfant${i}">Maternité</label>
+                        </div>
+                        `
+                    : ""
+            }
+            `;
+
+            childrenDetailsDiv.appendChild(childDiv);
+        }
+    }
+
+    // Ajout d'un écouteur d'événement pour le champ sexe
+    document.getElementById("sexe").addEventListener("change", generateChildrenFields);
+</script>
+
 </body>
 </html>
