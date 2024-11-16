@@ -110,7 +110,7 @@
             trimRequis: parseInt(document.getElementById("trimRequis").value),
             trimHandicap: parseInt(document.getElementById("trimHandicap").value)
         };
-
+        console.log(formData);
         fetch("/simuler", {
             method: "POST",
             headers: {

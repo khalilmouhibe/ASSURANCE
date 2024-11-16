@@ -18,17 +18,15 @@ public class ServiceRetraite {
     // FIXME Il n'y a pour l'instant pas de vérification de quels trimestres ont été cotisés après l'âge de départ à la retraite
 // DONE decote pour partir avant l'age de retraite
 
-    // TODO enfants (pour chaque enfant, savoir maternité et éducation)
+
     // TODO taux plein automatique à 67 ans (cocher une case qui enclenche ce mode de calcul différent)
     // TODO handicapés
     // TODO carriere longue ()
     // TODO gérer exceptions et valeurs manquantes
+    // TODO enfants (pour chaque enfant, savoir maternité et éducation)
+    // TODO pouvoir choisir la data à laquelle est faite la simulation
     public double calculerEpargneRetraite(Adherent adherent) {
-        int nbTrimestresManquants = calculerTrimestresManquants(
-                adherent.getDateNaissance(),
-                adherent.getTrimValide(),
-                adherent.getDateRetraiteSouhait()
-        );
+        int nbTrimestresManquants = calculerTrimestresManquants(adherent);
         double taux = calculerTaux(nbTrimestresManquants);
         double fractionTrim = calculerFractionTrimestres(adherent, nbTrimestresManquants);
 
@@ -37,7 +35,7 @@ public class ServiceRetraite {
                 adherent.getDateNaissance(),
                 adherent.getDateRetraiteSouhait()
         );
-// TODO enfants
+
         // Calcul de la pension brute
         double epargneBrute = adherent.getSAM() * taux * fractionTrim * decoteAge;
 
@@ -52,6 +50,7 @@ public class ServiceRetraite {
 
         // Arrondir le montant final
         BigDecimal epargneArrondie = BigDecimal.valueOf(epargneBrute).setScale(2, RoundingMode.HALF_UP);
+        System.out.println(epargneArrondie);
         return epargneArrondie.doubleValue();
     }
 
@@ -128,17 +127,28 @@ public class ServiceRetraite {
         return trimestres;
     }
 
-    public int calculerTrimestresManquants(Date dateNaissance, int nbTrimValide, Date dateRetraiteSouhaitee) {
-        int trimestresRequis = calculerTrimestresRequis(dateNaissance);
+    public int calculerTrimestresManquants(Adherent adherent) {
+        // Calcul des trimestres requis à partir de la date de naissance
+        int trimestresRequis = calculerTrimestresRequis(adherent.getDateNaissance());
 
         // Ajouter les trimestres entre aujourd'hui et la date de retraite souhaitée si renseignée
-        if (dateRetraiteSouhaitee != null) {
-            int trimestresSup = calculerTrimestresEntreDates(new Date(), dateRetraiteSouhaitee);
+        int nbTrimValide = adherent.getTrimValide();
+        if (adherent.getDateRetraiteSouhait() != null) {
+            int trimestresSup = calculerTrimestresEntreDates(new Date(), adherent.getDateRetraiteSouhait());
             nbTrimValide += trimestresSup;
         }
 
+        // Ajouter les trimestres pour les enfants (supposons qu'une méthode existe pour ça)
+        nbTrimValide += calculerTrimestresParEnfant(adherent);
+
+        // Ajouter d'autres critères spécifiques si nécessaire (par exemple, trimestres de handicap)
+        // nbTrimValide += adherent.getTrimHandicap();
+
+        // Calcul final des trimestres manquants
         return Math.max(trimestresRequis - nbTrimValide, 0);
     }
+
+
     public double calculerTaux(int nbTrimestresManquants) {
         double tauxPlein = 0.5; // Taux plein à 50%
         double tauxDecoteParTrimestre = 0.625; // 0.625 de décote du taux par trimestre manquant
@@ -155,7 +165,7 @@ public class ServiceRetraite {
 
     public double calculerFractionTrimestres(Adherent adherent, int nbTrimestresManquants){
         int nbTrimestresRequis = calculerTrimestresRequis(adherent.getDateNaissance());
-        int nbTrimestresValides = nbTrimestresRequis - nbTrimestresManquants; // S'adapte selon la date de départ choisie
+        int nbTrimestresValides = nbTrimestresRequis - nbTrimestresManquants; // S'adapte selon la date de départ choisie et les enfants
         double fraction = (double) nbTrimestresValides / nbTrimestresRequis;
         fraction = Math.min(1, fraction);
         return fraction;
