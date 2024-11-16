@@ -131,6 +131,15 @@
                     <input type="number" id="trimHandicap" name="trimHandicap" class="form-control">
                 </div>
 
+                <div class="form-group">
+                    <label for="methodeTaux">Méthode de calcul du taux :</label>
+                    <select id="methodeTaux" name="methodeTaux" class="form-control" required>
+                        <option value="1">La plus avantageuse</option>
+                        <option value="2">Taux plein classique</option>
+                        <option value="3">Taux plein automatique</option>
+                    </select>
+                </div>
+
                 <button id="simulerBtn" class="btn btn-primary btn-block mt-3">Simuler ma retraite</button>
             </form>
         </div>
@@ -159,7 +168,10 @@
 </div>
 
 <script>
-    document.getElementById("simulerBtn").addEventListener("click", function() {
+    document.getElementById("simulerBtn").addEventListener("click", function(event) {
+        // Empêcher le rechargement de la page lors de l'envoi du formulaire
+        event.preventDefault();
+
         const formData = {
             dateNaissance: document.getElementById("dateNaissance").value,
             nom: document.getElementById("nom").value,
@@ -173,7 +185,8 @@
             nbEnfantsPartages: parseInt(document.getElementById("nbEnfantsPartages").value),
             trimValide: parseInt(document.getElementById("trimValide").value),
             trimRequis: parseInt(document.getElementById("trimRequis").value),
-            trimHandicap: parseInt(document.getElementById("trimHandicap").value)
+            trimHandicap: parseInt(document.getElementById("trimHandicap").value),
+            methodeTaux: parseInt(document.getElementById("methodeTaux").value)
         };
         console.log(formData);
         fetch("/simuler", {
@@ -185,7 +198,8 @@
         })
             .then(response => response.json())
             .then(data => {
-                document.getElementById("totalEpargne").innerText = data.totalEpargne;
+                console.log(data);
+                document.getElementById("totalEpargne").innerText = data;
                 document.getElementById("result").style.display = "block";
             })
             .catch(error => console.error("Erreur lors de la simulation:", error));

@@ -17,9 +17,8 @@ public class ServiceRetraite {
     // DONE surcote (trimestres travaillés après l'age de départ à la retraite)
     // FIXME Il n'y a pour l'instant pas de vérification de quels trimestres ont été cotisés après l'âge de départ à la retraite
 // DONE decote pour partir avant l'age de retraite
+// DONE taux plein automatique à 67 ans (cocher une case qui enclenche ce mode de calcul différent)
 
-
-    // TODO taux plein automatique à 67 ans (cocher une case qui enclenche ce mode de calcul différent)
     // TODO handicapés
     // TODO carriere longue ()
     // TODO gérer exceptions et valeurs manquantes
@@ -27,7 +26,7 @@ public class ServiceRetraite {
     // TODO pouvoir choisir la data à laquelle est faite la simulation
     public double calculerEpargneRetraite(Adherent adherent) {
         int nbTrimestresManquants = calculerTrimestresManquants(adherent);
-        double taux = calculerTaux(nbTrimestresManquants);
+        double taux = calculerTaux(adherent, nbTrimestresManquants);
         double fractionTrim = calculerFractionTrimestres(adherent, nbTrimestresManquants);
 
         // Calculer la décote pour départ avant l'âge légal
@@ -148,19 +147,53 @@ public class ServiceRetraite {
         return Math.max(trimestresRequis - nbTrimValide, 0);
     }
 
+    private double calculerTauxClassique(int nbTrimestresManquants, double tauxPlein, double tauxDecoteParTrimestre, double tauxMinimum) {
+        double taux = tauxPlein - (nbTrimestresManquants * tauxDecoteParTrimestre);
+        return Math.max(taux, tauxMinimum); // S'assurer que le taux ne descend pas sous le minimum
+    }
 
-    public double calculerTaux(int nbTrimestresManquants) {
-        double tauxPlein = 0.5; // Taux plein à 50%
-        double tauxDecoteParTrimestre = 0.625; // 0.625 de décote du taux par trimestre manquant
-        double tauxMinimum = 0.375; // Taux minimum fixé à 37,5%
-        int nbTrimestresManquantsMax = 20;
-        nbTrimestresManquants = Math.min(nbTrimestresManquantsMax, nbTrimestresManquants);
+    private double calculerTauxAutomatique(Adherent adherent, double tauxPlein, double tauxDecoteParTrimestre, double tauxMinimum) {
+        LocalDate dateNaissance = new java.sql.Date(adherent.getDateNaissance().getTime()).toLocalDate();
+        LocalDate dateRetraiteSouhaitee = new java.sql.Date(adherent.getDateRetraiteSouhait().getTime()).toLocalDate();
 
-        // Calcul de la réduction totale en fonction des trimestres manquants
-        double taux = tauxPlein - ((tauxDecoteParTrimestre * nbTrimestresManquants)/100);
+        // Calcul des trimestres manquants pour atteindre 67 ans
+        LocalDate dateAtteinte67Ans = dateNaissance.plusYears(67);
+        int trimestresManquants = calculerTrimestresEntreDates(
+                java.sql.Date.valueOf(dateRetraiteSouhaitee),
+                java.sql.Date.valueOf(dateAtteinte67Ans)
+        );
 
-        // S'assurer que le taux ne descend pas en dessous du taux minimum
+        // Décote pour les trimestres manquants
+        double taux = tauxPlein - (trimestresManquants * tauxDecoteParTrimestre);
+
+        // S'assurer que le taux ne descend pas en dessous de 0
         return Math.max(taux, tauxMinimum);
+    }
+
+    public double calculerTaux(Adherent adherent, int nbTrimestresManquants) {
+        double tauxPlein = 0.5; // Taux plein à 50%
+        double tauxDecoteParTrimestre = 0.00625; // Décote de 0.625 % par trimestre manquant
+        double tauxMinimum = 0.375; // Taux minimum de 37.5 %
+        int nbTrimestresManquantsMax = 20; // Limite à 20 trimestres pour la décote
+        nbTrimestresManquants = Math.min(nbTrimestresManquantsMax, nbTrimestresManquants);
+        double taux;
+        switch (adherent.getMethodeTaux()) {
+            case 2: // Taux plein classique
+                taux = calculerTauxClassique(nbTrimestresManquants, tauxPlein, tauxDecoteParTrimestre, tauxMinimum);
+                break;
+
+            case 3: // Taux plein automatique
+                taux = calculerTauxAutomatique(adherent, tauxPlein, tauxDecoteParTrimestre, tauxMinimum);
+                break;
+
+            default: // La plus avantageuse
+                taux = Math.max(
+                        calculerTauxClassique(nbTrimestresManquants, tauxPlein, tauxDecoteParTrimestre, tauxMinimum),
+                        calculerTauxAutomatique(adherent, tauxPlein, tauxDecoteParTrimestre, tauxMinimum)
+                );
+        }
+
+        return taux;
     }
 
     public double calculerFractionTrimestres(Adherent adherent, int nbTrimestresManquants){
@@ -182,12 +215,12 @@ public class ServiceRetraite {
 
         // Vérifier si la personne a atteint l'âge légal et le taux plein
         if (!dateRetraiteSouhaitee.isAfter(ageLegal)) {
-            return 0; // Pas de surcote si la date de départ est avant l'âge légal
+            return 1; // Pas de surcote si la date de départ est avant l'âge légal
         }
 
         int nbTrimestresValides = adherent.getTrimValide();
         if (nbTrimestresValides < trimestresRequis) {
-            return 0; // Pas de surcote si le taux plein n'est pas atteint
+            return 1; // Pas de surcote si le taux plein n'est pas atteint
         }
 
         // Calculer les trimestres supplémentaires travaillés après le taux plein
@@ -197,16 +230,6 @@ public class ServiceRetraite {
         return 1 + surcote;
     }
 
-    public double calculerDecoteAge(Date dateNaissance, Date dateRetraiteSouhaitee) {
-        LocalDate ageLegal = calculerAgeDepart(dateNaissance); // Âge légal calculé
-        LocalDate ageSouhaite = new java.sql.Date(dateRetraiteSouhaitee.getTime()).toLocalDate();
-        // Calculer la différence en années et mois
-        Period diff = Period.between(ageSouhaite, ageLegal);
-        int trimestresAvantAgeLegal = (diff.getYears() * 12 + diff.getMonths()) / 3; // Convertir en trimestres
-        // Décote par trimestre manquant (1,25% par trimestre, soit 0.0125)
-        double tauxDecoteParTrimestre = 0.0125;
-        return Math.min(trimestresAvantAgeLegal * tauxDecoteParTrimestre, 1); // Limiter à une décote maximale de 100%
-    }
 
     public double calculerDecotePourDepartAnticipe(Date dateNaissance, Date dateRetraiteSouhaitee) {
         LocalDate ageLegal = calculerAgeDepart(dateNaissance); // Âge légal calculé

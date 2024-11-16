@@ -21,9 +21,5 @@ public class ControleurRetraite {
     public double simulerRetraite(@RequestBody Adherent adherent) {
         return serviceRetraite.calculerEpargneRetraite(adherent);
     }
-    @PostMapping("/simuler2")
-    @ResponseBody
-    public double simulerRetraite2(@RequestBody Adherent adherent) {
-        return serviceRetraite.calculerEpargneRetraite(adherent);
-    }
+
 }

@@ -11,7 +11,7 @@ public class Adherent {
     private int sexe;
     private int ageDepMois;
     private int nbEnfants;
-    private Date dateRetraiteSouhait;
+    private Date dateRetraiteSouhait = new Date();
     @JsonProperty("SAM")
     private int SAM;
     private Boolean trimestrePartage;
@@ -19,6 +19,24 @@ public class Adherent {
     private int trimValide;
     private int trimRequis;
     private int trimHandicap;
+    private int methodeTaux;
+    private Date dateSimulation = new Date();
+
+    public int getMethodeTaux() {
+        return methodeTaux;
+    }
+
+    public void setMethodeTaux(int methodeTaux) {
+        this.methodeTaux = methodeTaux;
+    }
+
+    public Date getDateSimulation() {
+        return dateSimulation;
+    }
+
+    public void setDateSimulation(Date dateSimulation) {
+        this.dateSimulation = dateSimulation;
+    }
 
     public Date getDateNaissance() {
         return dateNaissance;
@@ -123,4 +141,5 @@ public class Adherent {
     public void setTrimHandicap(int trimHandicap) {
         this.trimHandicap = trimHandicap;
     }
+
 }
