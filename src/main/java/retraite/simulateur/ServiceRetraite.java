@@ -20,12 +20,15 @@ public class ServiceRetraite {
 // DONE decote pour partir avant l'age de retraite
 // DONE taux plein automatique à 67 ans (cocher une case qui enclenche ce mode de calcul différent)
     // DONE enfants (pour chaque enfant, savoir maternité et éducation)
+    // DONE carriere longue
 
     // TODO handicapés
-    // TODO carriere longue ()
+    // Age de départ, nombre de trimestre, taux plein direct
+
     // TODO gérer exceptions et valeurs manquantes
 
     // TODO pouvoir choisir la date à laquelle est faite la simulation
+    // TODO envoyer un message si la personne ne peut pas légalement prendre sa retraite
     public double calculerEpargneRetraite(Adherent adherent) {
         int nbTrimestresManquants = calculerTrimestresManquants(adherent);
         double taux = calculerTaux(adherent, nbTrimestresManquants);
@@ -35,7 +38,8 @@ public class ServiceRetraite {
         double decoteAge = calculerDecotePourDepartAnticipe(
                 adherent.getDateNaissance(),
                 adherent.getDateRetraiteSouhait(),
-                adherent.getCarriereLongue()
+                adherent.getCarriereLongue(),
+                adherent.getTrimHandicap()
         );
 
         // Calcul de la pension brute
@@ -169,11 +173,17 @@ public class ServiceRetraite {
     }
 
     public int calculerTrimestresManquants(Adherent adherent) {
+        int trimestresRequis;
         // Calcul des trimestres requis à partir de la date de naissance
-        int trimestresRequis = calculerTrimestresRequis(adherent.getDateNaissance());
+        if (adherent.getTrimHandicap() > 0) {
+            trimestresRequis = calculerTrimestresRequisHandicap(adherent.getDateNaissance(), adherent.getDateRetraiteSouhait());
+        } else {
+            trimestresRequis = calculerTrimestresRequis(adherent.getDateNaissance());
+        }
 
         // Ajouter les trimestres entre aujourd'hui et la date de retraite souhaitée si renseignée
-        int nbTrimValide = adherent.getTrimValide();
+        int nbTrimValide = adherent.getTrimValide() + adherent.getTrimHandicap();
+        // FIXME refaire la surcote des trimestres supplémentaires
         if (adherent.getDateRetraiteSouhait() != null) {
             int trimestresSup = calculerTrimestresEntreDates(new Date(), adherent.getDateRetraiteSouhait());
             nbTrimValide += trimestresSup;
@@ -212,34 +222,43 @@ public class ServiceRetraite {
         return Math.max(taux, tauxMinimum);
     }
 
-    public double calculerTaux(Adherent adherent, int nbTrimestresManquants) {
+    public double calculerTaux(Adherent adherent, int nbTrimestresManquantsPourDecote) {
         double tauxPlein = 0.5; // Taux plein à 50%
         double tauxDecoteParTrimestre = 0.00625; // Décote de 0.625 % par trimestre manquant
         double tauxMinimum = 0.375; // Taux minimum de 37.5 %
         int nbTrimestresManquantsMax = 20; // Limite à 20 trimestres pour la décote
-        nbTrimestresManquants = Math.min(nbTrimestresManquantsMax, nbTrimestresManquants);
+        nbTrimestresManquantsPourDecote = Math.min(nbTrimestresManquantsMax, nbTrimestresManquantsPourDecote);
         double taux;
-        switch (adherent.getMethodeTaux()) {
-            case 2: // Taux plein classique
-                taux = calculerTauxClassique(nbTrimestresManquants, tauxPlein, tauxDecoteParTrimestre, tauxMinimum);
-                break;
+        if (adherent.getTrimHandicap() > 0) {
+            taux = tauxPlein;
+        } else {
+            switch (adherent.getMethodeTaux()) {
+                case 2: // Taux plein classique
+                    taux = calculerTauxClassique(nbTrimestresManquantsPourDecote, tauxPlein, tauxDecoteParTrimestre, tauxMinimum);
+                    break;
 
-            case 3: // Taux plein automatique
-                taux = calculerTauxAutomatique(adherent, tauxPlein, tauxDecoteParTrimestre, tauxMinimum);
-                break;
+                case 3: // Taux plein automatique
+                    taux = calculerTauxAutomatique(adherent, tauxPlein, tauxDecoteParTrimestre, tauxMinimum);
+                    break;
 
-            default: // La plus avantageuse
-                taux = Math.max(
-                        calculerTauxClassique(nbTrimestresManquants, tauxPlein, tauxDecoteParTrimestre, tauxMinimum),
-                        calculerTauxAutomatique(adherent, tauxPlein, tauxDecoteParTrimestre, tauxMinimum)
-                );
+                default: // La plus avantageuse
+                    taux = Math.max(
+                            calculerTauxClassique(nbTrimestresManquantsPourDecote, tauxPlein, tauxDecoteParTrimestre, tauxMinimum),
+                            calculerTauxAutomatique(adherent, tauxPlein, tauxDecoteParTrimestre, tauxMinimum)
+                    );
+            }
         }
 
         return taux;
     }
 
     public double calculerFractionTrimestres(Adherent adherent, int nbTrimestresManquants) {
-        int nbTrimestresRequis = calculerTrimestresRequis(adherent.getDateNaissance());
+        int nbTrimestresRequis = 0;
+        if (adherent.getTrimHandicap()>0){
+            nbTrimestresRequis = calculerTrimestresRequisHandicap(adherent.getDateNaissance(), adherent.getDateRetraiteSouhait());
+        } else {
+            nbTrimestresRequis = calculerTrimestresRequis(adherent.getDateNaissance());
+        }
         int nbTrimestresValides = nbTrimestresRequis - nbTrimestresManquants; // S'adapte selon la date de départ choisie et les enfants
         double fraction = (double) nbTrimestresValides / nbTrimestresRequis;
         fraction = Math.min(1, fraction);
@@ -247,9 +266,17 @@ public class ServiceRetraite {
     }
 
     public double calculerSurcote(Adherent adherent) {
+        LocalDate ageLegal;
+        int trimestresRequis=0;
+
         // Âge légal et trimestres requis
-        LocalDate ageLegal = calculerAgeDepart(adherent.getDateNaissance(), adherent.getCarriereLongue());
-        int trimestresRequis = calculerTrimestresRequis(adherent.getDateNaissance());
+        if(adherent.getTrimHandicap()>0){
+            ageLegal = calculerAgeDepartHandicap(adherent.getDateNaissance(), adherent.getTrimHandicap()+adherent.getTrimValide());
+            trimestresRequis = calculerTrimestresRequisHandicap(adherent.getDateNaissance(), adherent.getDateRetraiteSouhait());
+        } else {
+            ageLegal = calculerAgeDepart(adherent.getDateNaissance(), adherent.getCarriereLongue());
+            trimestresRequis = calculerTrimestresRequis(adherent.getDateNaissance());
+        }
 
         // Convertir la date de naissance en LocalDate
         LocalDate dateNaissanceLocal = new java.sql.Date(adherent.getDateNaissance().getTime()).toLocalDate();
@@ -260,7 +287,7 @@ public class ServiceRetraite {
             return 1; // Pas de surcote si la date de départ est avant l'âge légal
         }
 
-        int nbTrimestresValides = adherent.getTrimValide();
+        int nbTrimestresValides = adherent.getTrimValide(); // FIXME le taux plein peut etre atteint avec les trims enfants et autres
         if (nbTrimestresValides < trimestresRequis) {
             return 1; // Pas de surcote si le taux plein n'est pas atteint
         }
@@ -273,7 +300,11 @@ public class ServiceRetraite {
     }
 
 
-    public double calculerDecotePourDepartAnticipe(Date dateNaissance, Date dateRetraiteSouhaitee, String carriereLongue) {
+    public double calculerDecotePourDepartAnticipe(Date dateNaissance, Date dateRetraiteSouhaitee, String carriereLongue, int trimHandicap) {
+        // TODO if handicap return 1.0
+        if(trimHandicap>0){
+            return  1.0;
+        }
         LocalDate ageLegal = calculerAgeDepart(dateNaissance, carriereLongue); // Âge légal calculé
         LocalDate dateSouhaitee = new java.sql.Date(dateRetraiteSouhaitee.getTime()).toLocalDate();
 
@@ -314,5 +345,169 @@ public class ServiceRetraite {
             }
         }
         return nbTrimestresEnfants;
+    }
+
+    public double calculerEpargneRetraiteHandicap(Adherent adherent) {
+        int nbTrimestresManquants = calculerTrimestresManquants(adherent);
+        double taux = calculerTaux(adherent, nbTrimestresManquants);
+        double fractionTrim = calculerFractionTrimestres(adherent, nbTrimestresManquants);
+
+        // Calculer la décote pour départ avant l'âge légal
+        double decoteAge = calculerDecotePourDepartAnticipe(
+                adherent.getDateNaissance(),
+                adherent.getDateRetraiteSouhait(),
+                adherent.getCarriereLongue(),
+                adherent.getTrimHandicap()
+        );
+
+        // Calcul de la pension brute
+        double epargneBrute = adherent.getSAM() * taux * fractionTrim * decoteAge;
+
+        // Ajouter la surcote si applicable
+        double surcote = calculerSurcote(adherent);
+        epargneBrute *= surcote;
+
+        // Ajouter la majoration pour les enfants si applicable
+        if (adherent.getNbEnfants() >= 3) {
+            epargneBrute *= 1.10; // Majoration de 10% pour 3 enfants ou plus
+        }
+
+        // Arrondir le montant final
+        BigDecimal epargneArrondie = BigDecimal.valueOf(epargneBrute).setScale(2, RoundingMode.HALF_UP);
+        System.out.println(epargneArrondie);
+        return epargneArrondie.doubleValue();
+    }
+
+    public int calculerTrimestresRequisHandicap(Date dateNaissance, Date dateRetraiteSouhaitee) {
+        // Convertir Date en LocalDate pour faciliter les calculs
+        LocalDate dateNaissanceLocal = new java.sql.Date(dateNaissance.getTime()).toLocalDate();
+        LocalDate dateRetraiteLocal = new java.sql.Date(dateRetraiteSouhaitee.getTime()).toLocalDate();
+
+        // Calculer l'âge de départ à la retraite
+        int ageDepart = Period.between(dateNaissanceLocal, dateRetraiteLocal).getYears();
+
+        // Extraire l'année de naissance
+        int anneeNaissance = dateNaissanceLocal.getYear();
+
+        // Déterminer les trimestres requis en fonction de l'année de naissance et de l'âge de départ
+        if (anneeNaissance < 1961 || (anneeNaissance == 1961 && dateNaissanceLocal.getMonthValue() < 9)) {
+            return 88; // Avant le 1er septembre 1961
+        } else if (anneeNaissance == 1961 || anneeNaissance == 1962) {
+            return 68; // Entre le 1er septembre 1961 et 31 décembre 1962
+        } else if (anneeNaissance == 1963) {
+            return 68;
+        } else if (anneeNaissance == 1964) {
+            if (ageDepart == 58) return 79;
+            return 69;
+        } else if (anneeNaissance == 1965) {
+            if (ageDepart == 57) return 89;
+            if (ageDepart == 58) return 79;
+            return 69;
+        } else if (anneeNaissance == 1966) {
+            if (ageDepart == 56) return 99;
+            if (ageDepart == 57) return 89;
+            if (ageDepart == 58) return 79;
+            return 69;
+        } else if (anneeNaissance >= 1967 && anneeNaissance <= 1969) {
+            if (ageDepart == 55) return 110;
+            if (ageDepart == 56) return 100;
+            if (ageDepart == 57) return 90;
+            if (ageDepart == 58) return 80;
+            return 70;
+        } else if (anneeNaissance >= 1970 && anneeNaissance <= 1972) {
+            if (ageDepart == 55) return 111;
+            if (ageDepart == 56) return 101;
+            if (ageDepart == 57) return 91;
+            if (ageDepart == 58) return 81;
+            return 71;
+        } else {
+            if (ageDepart == 55) return 112;
+            if (ageDepart == 56) return 102;
+            if (ageDepart == 57) return 92;
+            if (ageDepart == 58) return 82;
+            return 72;
+        }
+
+        // Si aucun cas ne correspond
+        //throw new IllegalArgumentException("Combinaison année de naissance et âge de départ invalide.");
+    }
+
+    public LocalDate calculerAgeDepartHandicap(Date dateNaissance, int trimestresCotises) {
+        LocalDate dateNaissanceLocal = new java.sql.Date(dateNaissance.getTime()).toLocalDate();
+        int anneeNaissance = dateNaissanceLocal.getYear();
+
+        // Vérification des conditions en fonction de l'année de naissance et des trimestres cotisés
+        if (anneeNaissance < 1961 || (anneeNaissance == 1961 && dateNaissanceLocal.getMonthValue() < 9)) {
+            if (trimestresCotises >= 68) {
+                return dateNaissanceLocal.plusYears(59);
+            }
+        } else if (anneeNaissance <= 1963) {
+            if (trimestresCotises >= 68) {
+                return dateNaissanceLocal.plusYears(59);
+            }
+        } else if (anneeNaissance == 1964) {
+            if (trimestresCotises >= 79) {
+                return dateNaissanceLocal.plusYears(58);
+            } else if (trimestresCotises >= 69) {
+                return dateNaissanceLocal.plusYears(59);
+            }
+        } else if (anneeNaissance == 1965) {
+            if (trimestresCotises >= 89) {
+                return dateNaissanceLocal.plusYears(57);
+            } else if (trimestresCotises >= 79) {
+                return dateNaissanceLocal.plusYears(58);
+            } else if (trimestresCotises >= 69) {
+                return dateNaissanceLocal.plusYears(59);
+            }
+        } else if (anneeNaissance == 1966) {
+            if (trimestresCotises >= 99) {
+                return dateNaissanceLocal.plusYears(56);
+            } else if (trimestresCotises >= 89) {
+                return dateNaissanceLocal.plusYears(57);
+            } else if (trimestresCotises >= 79) {
+                return dateNaissanceLocal.plusYears(58);
+            } else if (trimestresCotises >= 69) {
+                return dateNaissanceLocal.plusYears(59);
+            }
+        } else if (anneeNaissance >= 1967 && anneeNaissance <= 1969) {
+            if (trimestresCotises >= 110) {
+                return dateNaissanceLocal.plusYears(55);
+            } else if (trimestresCotises >= 100) {
+                return dateNaissanceLocal.plusYears(56);
+            } else if (trimestresCotises >= 90) {
+                return dateNaissanceLocal.plusYears(57);
+            } else if (trimestresCotises >= 80) {
+                return dateNaissanceLocal.plusYears(58);
+            } else if (trimestresCotises >= 70) {
+                return dateNaissanceLocal.plusYears(59);
+            }
+        } else if (anneeNaissance >= 1970 && anneeNaissance <= 1972) {
+            if (trimestresCotises >= 111) {
+                return dateNaissanceLocal.plusYears(55);
+            } else if (trimestresCotises >= 101) {
+                return dateNaissanceLocal.plusYears(56);
+            } else if (trimestresCotises >= 91) {
+                return dateNaissanceLocal.plusYears(57);
+            } else if (trimestresCotises >= 81) {
+                return dateNaissanceLocal.plusYears(58);
+            } else if (trimestresCotises >= 71) {
+                return dateNaissanceLocal.plusYears(59);
+            }
+        } else {
+            if (trimestresCotises >= 112) {
+                return dateNaissanceLocal.plusYears(55);
+            } else if (trimestresCotises >= 102) {
+                return dateNaissanceLocal.plusYears(56);
+            } else if (trimestresCotises >= 92) {
+                return dateNaissanceLocal.plusYears(57);
+            } else if (trimestresCotises >= 82) {
+                return dateNaissanceLocal.plusYears(58);
+            } else if (trimestresCotises >= 72) {
+                return dateNaissanceLocal.plusYears(59);
+            }
+        }
+
+        // Par défaut, aucune condition remplie
+        throw new IllegalArgumentException("Les conditions d'âge et de trimestres cotisés ne sont pas remplies.");
     }
 }

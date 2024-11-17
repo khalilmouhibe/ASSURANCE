@@ -17,10 +17,10 @@ public class Adherent {
     private int SAM;
     private Boolean trimestrePartage;
     private int nbEnfantsPartages;
-    private int trimValide;
-    private int trimRequis;
-    private int trimHandicap;
-    private int methodeTaux;
+    private int trimValide = 0;
+    private int trimRequis = 0;
+    private int trimHandicap = 0;
+    private int methodeTaux = 1;
     private Date dateSimulation = new Date();
     private List<Enfant> enfants;
     @JsonProperty("carriereLongue")
