@@ -103,7 +103,10 @@
                     <label for="dateRetraiteSouhait">Date de retraite souhaitée:</label>
                     <input type="date" id="dateRetraiteSouhait" name="dateRetraiteSouhait" class="form-control">
                 </div>
-
+                <div class="form-group">
+                    <label for="revenus">Télecharger votre relevé de carrière :</label>
+                    <input type="file" id="revenus" name="revenus" class="form-control">
+                </div>
                 <div class="form-group">
                     <label for="SAM">Salaire Annuel Moyen (SAM):</label>
                     <input type="number" id="SAM" name="SAM" class="form-control" required>
@@ -133,6 +136,8 @@
                     <label for="trimHandicap">Trimestres Handicap:</label>
                     <input type="number" id="trimHandicap" name="trimHandicap" class="form-control">
                 </div>
+
+
 
                 <div class="form-group">
                     <label>Carrière Longue :</label>
@@ -168,6 +173,7 @@
                 </div>
 
                 <button id="simulerBtn" class="btn btn-primary btn-block mt-3">Simuler ma retraite</button>
+                <button id="afficherexcel" class="btn btn-primary btn-block mt-3">Simuler ma excell</button>
             </form>
         </div>
     </div>
@@ -192,6 +198,9 @@
         </ul>
         <p class="text-center text-body-secondary">© 2024 MAYTAM, Inc</p>
     </footer>
+</div>
+<div id="output">
+
 </div>
 
 <script>
@@ -288,7 +297,82 @@
 
     // Ajout d'un écouteur d'événement pour le champ sexe
     document.getElementById("sexe").addEventListener("change", generateChildrenFields);
+
+    document.getElementById('afficherexcel').addEventListener('click', function (e) {
+        e.preventDefault();
+        const fileInput = document.getElementById('revenus');
+        if (fileInput.files.length === 0) {
+            alert('Veuillez sélectionner un fichier.');
+            return;
+        }
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet);
+
+            // Filtrer et trier les données
+            const sortedData = json
+                .filter(row => row.Revalorisation) // Supprimer les lignes sans Revalorisation
+                .sort((a, b) => b.Revalorisation - a.Revalorisation);
+
+            // Sélectionner les 5 premières lignes
+            const topData = sortedData.slice(0, 25);
+            // Calculer la moyenne des valeurs "Revalorisation" des lignes sélectionnées
+            const totalRevalorisation = topData.reduce((sum, row) => sum + (row.Revalorisation || 0), 0);
+            const averageRevalorisation = totalRevalorisation / topData.length;
+            document.getElementById('SAM').value = averageRevalorisation;
+
+
+            // Filtrer les colonnes désirées pour l'affichage
+            const columnsToShow = ["Date début", "Date fin", " REVENUS EN EUROS ", "Revalorisation"];
+            const filteredTopData = topData.map(row => {
+                return Object.fromEntries(
+                    Object.entries(row).filter(([key]) => columnsToShow.includes(key))
+                );
+            }).map(row => {
+                // Convertir les dates Excel en format lisible
+                if (row["Date début"]) row["Date début"] = excelDateToJSDate(row["Date début"]);
+                if (row["Date fin"]) row["Date fin"] = excelDateToJSDate(row["Date fin"]);
+                return row;
+            });
+
+// Générer le tableau HTML
+            let outputHtml = `
+  <table class="table table-bordered mt-3">
+    <thead>
+      <tr>
+        ${columnsToShow.map(col => `<th>${col}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      ${filteredTopData.map(row => `
+        <tr>
+          ${columnsToShow.map(col => `<td>${row[col] || ''}</td>`).join('')}
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+`;
+
+
+            document.getElementById('output').innerHTML = outputHtml;
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    // Fonction pour convertir une date Excel (nombre) en une date lisible
+    function excelDateToJSDate(serial) {
+        const excelEpoch = new Date(1899, 11, 30); // Excel commence au 30 décembre 1899
+        const jsDate = new Date(excelEpoch.getTime() + serial * 86400000); // Ajouter le nombre de jours
+        return jsDate.toISOString().split('T')[0]; // Retourner en format YYYY-MM-DD
+    }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 </body>
 </html>
