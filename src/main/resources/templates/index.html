@@ -58,6 +58,26 @@
         </div>
     </div>
 </div>
+
+
+
+<div class="modal fade" id="revenusModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="revenusModalLabel">25 meilleures années prises en compte </h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="output">
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
 <div class="container mt-5">
     <div class="card shadow-sm">
         <div class="card-body">
@@ -103,13 +123,29 @@
                     <label for="dateRetraiteSouhait">Date de retraite souhaitée:</label>
                     <input type="date" id="dateRetraiteSouhait" name="dateRetraiteSouhait" class="form-control">
                 </div>
-                <div class="form-group">
-                    <label for="revenus">Télecharger votre relevé de carrière :</label>
+                <label for="revenus">Télecharger votre relevé de carrière :</label>
+               <!-- <div class="form-group">
                     <input type="file" id="revenus" name="revenus" class="form-control">
+                    <button type="button" id="afficherexcel" class=" input-group-text btn btn-primary btn-block mt-3">Simuler ma excell</button>
+
+                </div>-->
+
+
+                <div class="input-group">
+                    <input type="file" name="revenus" class="form-control" id="revenus" aria-describedby="inputGroupFileAddon04" aria-label="Upload">
+                    <button class="btn btn-primary afficherexcel" type="button" id="inputGroupFileAddon04">OK</button>
                 </div>
-                <div class="form-group">
+               <!-- <div class="form-group">
                     <label for="SAM">Salaire Annuel Moyen (SAM):</label>
                     <input type="number" id="SAM" name="SAM" class="form-control" required>
+                    <button data-bs-toggle="modal" data-bs-target="#revenusModal" type="button" class="btn btn-primary btn-lg px-4 gap-3" style="background: #65d0e1 ;color: white;border: solid 1px  #65d0e1 ;">Voir détails</button>
+
+                </div>-->
+                <label for="SAM">Salaire Annuel Moyen (SAM):</label>
+
+                <div class="input-group mb-3">
+                    <input type="number" id="SAM" name="SAM" class="form-control" required>
+                               <button id="basic-addon2" data-bs-toggle="modal" data-bs-target="#revenusModal" type="button" class="input-group-text btn btn-primary btn-lg px-4 gap-3" style="background: #65d0e1 ;color: white;border: solid 1px  #65d0e1 ;">Voir détails</button>
                 </div>
 
                 <div class="form-check mb-3">
@@ -173,7 +209,7 @@
                 </div>
 
                 <button id="simulerBtn" class="btn btn-primary btn-block mt-3">Simuler ma retraite</button>
-                <button id="afficherexcel" class="btn btn-primary btn-block mt-3">Simuler ma excell</button>
+<!--                <button id="afficherexcel" class="btn btn-primary btn-block mt-3">Simuler ma excell</button>-->
             </form>
         </div>
     </div>
@@ -199,7 +235,6 @@
         <p class="text-center text-body-secondary">© 2024 MAYTAM, Inc</p>
     </footer>
 </div>
-<div id="output">
 
 </div>
 
@@ -298,7 +333,7 @@
     // Ajout d'un écouteur d'événement pour le champ sexe
     document.getElementById("sexe").addEventListener("change", generateChildrenFields);
 
-    document.getElementById('afficherexcel').addEventListener('click', function (e) {
+    document.getElementById('inputGroupFileAddon04').addEventListener('click', function (e) {
         e.preventDefault();
         const fileInput = document.getElementById('revenus');
         if (fileInput.files.length === 0) {
