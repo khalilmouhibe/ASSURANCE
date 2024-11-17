@@ -135,6 +135,30 @@
                 </div>
 
                 <div class="form-group">
+                    <label>Carrière Longue :</label>
+                    <div class="form-check">
+                        <input type="radio" id="carriereLongueNon" name="carriereLongue" value="Non" class="form-check-input" checked>
+                        <label class="form-check-label" for="carriereLongueNon">Non applicable</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="radio" id="carriereLongue21" name="carriereLongue" value="21" class="form-check-input">
+                        <label class="form-check-label" for="carriereLongue21">Début de carrière à 21 ans</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="radio" id="carriereLongue20" name="carriereLongue" value="20" class="form-check-input">
+                        <label class="form-check-label" for="carriereLongue20">Début de carrière à 20 ans</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="radio" id="carriereLongue18" name="carriereLongue" value="18" class="form-check-input">
+                        <label class="form-check-label" for="carriereLongue18">Début de carrière à 18 ans</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="radio" id="carriereLongue16" name="carriereLongue" value="16" class="form-check-input">
+                        <label class="form-check-label" for="carriereLongue16">Début de carrière à 16 ans</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
                     <label for="methodeTaux">Méthode de calcul du taux :</label>
                     <select id="methodeTaux" name="methodeTaux" class="form-control" required>
                         <option value="1">La plus avantageuse</option>
@@ -189,6 +213,7 @@
             trimValide: parseInt(document.getElementById("trimValide").value),
             trimRequis: parseInt(document.getElementById("trimRequis").value),
             trimHandicap: parseInt(document.getElementById("trimHandicap").value),
+            carriereLongue: document.querySelector('input[name="carriereLongue"]:checked').value,
             methodeTaux: parseInt(document.getElementById("methodeTaux").value)
         };
         const childrenInfo = [];

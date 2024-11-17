@@ -34,7 +34,8 @@ public class ServiceRetraite {
         // Calculer la décote pour départ avant l'âge légal
         double decoteAge = calculerDecotePourDepartAnticipe(
                 adherent.getDateNaissance(),
-                adherent.getDateRetraiteSouhait()
+                adherent.getDateRetraiteSouhait(),
+                adherent.getCarriereLongue()
         );
 
         // Calcul de la pension brute
@@ -59,7 +60,7 @@ public class ServiceRetraite {
         // Convertir Date en LocalDate pour faciliter les comparaisons
         LocalDate dateNaissanceLocal = new java.sql.Date(dateNaissance.getTime()).toLocalDate();
 
-        if (dateNaissanceLocal.isBefore(LocalDate.of(1961, 1, 1))) {
+        if (dateNaissanceLocal.isBefore(LocalDate.of(1960, 1, 1))) {
             return 167; // 1960 et avant
         } else if (dateNaissanceLocal.isBefore(LocalDate.of(1961, 9, 1))) {
             return 168; // 1er janvier au 31 août 1961
@@ -76,32 +77,71 @@ public class ServiceRetraite {
         }
     }
 
-    public LocalDate calculerAgeDepart(Date dateNaissance) {
+    public LocalDate calculerAgeDepart(Date dateNaissance, String carriereLongue) {
         LocalDate dateNaissanceLocal = new java.sql.Date(dateNaissance.getTime()).toLocalDate();
+        LocalDate ageDepartCarriereLongue = null;
 
-        if (dateNaissanceLocal.isBefore(LocalDate.of(1958, 1, 1))) {
-            return dateNaissanceLocal.plusYears(62); // 62 ans pour 1955 - 1957
-        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1961, 1, 1))) {
-            return dateNaissanceLocal.plusYears(62); // 62 ans pour 1958 - 1960
-        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1961, 9, 1))) {
-            return dateNaissanceLocal.plusYears(62); // 62 ans pour 1er janvier au 31 août 1961
-        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1962, 1, 1))) {
-            return dateNaissanceLocal.plusYears(62).plusMonths(3); // 62 ans et 3 mois pour 1er septembre - 31 décembre 1961
-        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1963, 1, 1))) {
-            return dateNaissanceLocal.plusYears(62).plusMonths(6); // 62 ans et 6 mois pour 1962
-        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1964, 1, 1))) {
-            return dateNaissanceLocal.plusYears(62).plusMonths(9); // 62 ans et 9 mois pour 1963
-        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1965, 1, 1))) {
-            return dateNaissanceLocal.plusYears(63); // 63 ans pour 1964
-        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1966, 1, 1))) {
-            return dateNaissanceLocal.plusYears(63).plusMonths(3); // 63 ans et 3 mois pour 1965
-        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1967, 1, 1))) {
-            return dateNaissanceLocal.plusYears(63).plusMonths(6); // 63 ans et 6 mois pour 1966
-        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1968, 1, 1))) {
-            return dateNaissanceLocal.plusYears(63).plusMonths(9); // 63 ans et 9 mois pour 1967
-        } else {
-            return dateNaissanceLocal.plusYears(64); // 64 ans pour 1968 et après
+        if ("21".equals(carriereLongue)) {
+            ageDepartCarriereLongue = dateNaissanceLocal.plusYears(63);
+        } else if ("20".equals(carriereLongue)) {
+            if (dateNaissanceLocal.isBefore(LocalDate.of(1963, 8, 31))) {
+                ageDepartCarriereLongue = dateNaissanceLocal.plusYears(60);
+            } else if (dateNaissanceLocal.isBefore(LocalDate.of(1963, 12, 31))) {
+                ageDepartCarriereLongue = dateNaissanceLocal.plusYears(60).plusMonths(3);
+            } else if (dateNaissanceLocal.isBefore(LocalDate.of(1963, 12, 31))) {
+                ageDepartCarriereLongue = dateNaissanceLocal.plusYears(60).plusMonths(6);
+            } else if (dateNaissanceLocal.isBefore(LocalDate.of(1963, 12, 31))) {
+                ageDepartCarriereLongue = dateNaissanceLocal.plusYears(60).plusMonths(9);
+            } else if (dateNaissanceLocal.isBefore(LocalDate.of(1963, 12, 31))) {
+                ageDepartCarriereLongue = dateNaissanceLocal.plusYears(61);
+            } else if (dateNaissanceLocal.isBefore(LocalDate.of(1963, 12, 31))) {
+                ageDepartCarriereLongue = dateNaissanceLocal.plusYears(60).plusMonths(9);
+            } else if (dateNaissanceLocal.isBefore(LocalDate.of(1963, 12, 31))) {
+                ageDepartCarriereLongue = dateNaissanceLocal.plusYears(61);
+            } else if (dateNaissanceLocal.isBefore(LocalDate.of(1963, 12, 31))) {
+                ageDepartCarriereLongue = dateNaissanceLocal.plusYears(61).plusMonths(3);
+            } else if (dateNaissanceLocal.isBefore(LocalDate.of(1963, 12, 31))) {
+                ageDepartCarriereLongue = dateNaissanceLocal.plusYears(61).plusMonths(6);
+            } else if (dateNaissanceLocal.isBefore(LocalDate.of(1963, 12, 31))) {
+                ageDepartCarriereLongue = dateNaissanceLocal.plusYears(61).plusMonths(9);
+            } else {
+                ageDepartCarriereLongue = dateNaissanceLocal.plusYears(62);
+            }
+        } else if ("18".equals(carriereLongue)) {
+            ageDepartCarriereLongue = dateNaissanceLocal.plusYears(60);
+        } else if ("16".equals(carriereLongue)) {
+            ageDepartCarriereLongue = dateNaissanceLocal.plusYears(58);
         }
+
+        LocalDate ageDepart;
+        if (dateNaissanceLocal.isBefore(LocalDate.of(1958, 1, 1))) {
+            ageDepart = dateNaissanceLocal.plusYears(62); // 62 ans pour 1955 - 1957
+        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1961, 1, 1))) {
+            ageDepart = dateNaissanceLocal.plusYears(62); // 62 ans pour 1958 - 1960
+        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1961, 9, 1))) {
+            ageDepart = dateNaissanceLocal.plusYears(62); // 62 ans pour 1er janvier au 31 août 1961
+        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1962, 1, 1))) {
+            ageDepart = dateNaissanceLocal.plusYears(62).plusMonths(3); // 62 ans et 3 mois pour 1er septembre - 31 décembre 1961
+        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1963, 1, 1))) {
+            ageDepart = dateNaissanceLocal.plusYears(62).plusMonths(6); // 62 ans et 6 mois pour 1962
+        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1964, 1, 1))) {
+            ageDepart = dateNaissanceLocal.plusYears(62).plusMonths(9); // 62 ans et 9 mois pour 1963
+        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1965, 1, 1))) {
+            ageDepart = dateNaissanceLocal.plusYears(63); // 63 ans pour 1964
+        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1966, 1, 1))) {
+            ageDepart = dateNaissanceLocal.plusYears(63).plusMonths(3); // 63 ans et 3 mois pour 1965
+        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1967, 1, 1))) {
+            ageDepart = dateNaissanceLocal.plusYears(63).plusMonths(6); // 63 ans et 6 mois pour 1966
+        } else if (dateNaissanceLocal.isBefore(LocalDate.of(1968, 1, 1))) {
+            ageDepart = dateNaissanceLocal.plusYears(63).plusMonths(9); // 63 ans et 9 mois pour 1967
+        } else {
+            ageDepart = dateNaissanceLocal.plusYears(64); // 64 ans pour 1968 et après
+        }
+        // Retourner la plus petite des deux valeurs
+        if (ageDepartCarriereLongue != null && ageDepartCarriereLongue.isBefore(ageDepart)) {
+            return ageDepartCarriereLongue;
+        }
+        return ageDepart;
     }
 
     public int calculerTrimestresEntreDates(Date dateDebut, Date dateFin) {
@@ -198,7 +238,7 @@ public class ServiceRetraite {
         return taux;
     }
 
-    public double calculerFractionTrimestres(Adherent adherent, int nbTrimestresManquants){
+    public double calculerFractionTrimestres(Adherent adherent, int nbTrimestresManquants) {
         int nbTrimestresRequis = calculerTrimestresRequis(adherent.getDateNaissance());
         int nbTrimestresValides = nbTrimestresRequis - nbTrimestresManquants; // S'adapte selon la date de départ choisie et les enfants
         double fraction = (double) nbTrimestresValides / nbTrimestresRequis;
@@ -208,7 +248,7 @@ public class ServiceRetraite {
 
     public double calculerSurcote(Adherent adherent) {
         // Âge légal et trimestres requis
-        LocalDate ageLegal = calculerAgeDepart(adherent.getDateNaissance());
+        LocalDate ageLegal = calculerAgeDepart(adherent.getDateNaissance(), adherent.getCarriereLongue());
         int trimestresRequis = calculerTrimestresRequis(adherent.getDateNaissance());
 
         // Convertir la date de naissance en LocalDate
@@ -233,8 +273,8 @@ public class ServiceRetraite {
     }
 
 
-    public double calculerDecotePourDepartAnticipe(Date dateNaissance, Date dateRetraiteSouhaitee) {
-        LocalDate ageLegal = calculerAgeDepart(dateNaissance); // Âge légal calculé
+    public double calculerDecotePourDepartAnticipe(Date dateNaissance, Date dateRetraiteSouhaitee, String carriereLongue) {
+        LocalDate ageLegal = calculerAgeDepart(dateNaissance, carriereLongue); // Âge légal calculé
         LocalDate dateSouhaitee = new java.sql.Date(dateRetraiteSouhaitee.getTime()).toLocalDate();
 
         if (!dateSouhaitee.isBefore(ageLegal)) {
@@ -252,21 +292,21 @@ public class ServiceRetraite {
         return Math.max(decote, 0.0); // S'assurer que la décote ne tombe pas en dessous de 0
     }
 
-    public int calculerTrimestresParEnfant(Adherent adherent){
-        int nbTrimestresEnfants=0;
+    public int calculerTrimestresParEnfant(Adherent adherent) {
+        int nbTrimestresEnfants = 0;
         List<Enfant> enfants = adherent.getEnfants();
-        if (adherent.getSexe()==1){ // Est un homme
-            for(Enfant e : enfants){
-                if (e.isEducationPartageeEnfant()){
+        if (adherent.getSexe() == 1) { // Est un homme
+            for (Enfant e : enfants) {
+                if (e.isEducationPartageeEnfant()) {
                     nbTrimestresEnfants += 2;
                 }
             }
         } else { // Est une femme
-            for(Enfant e : enfants){
-                if (e.isMaterniteEnfant()){
+            for (Enfant e : enfants) {
+                if (e.isMaterniteEnfant()) {
                     nbTrimestresEnfants += 4;
                 }
-                if (e.isEducationPartageeEnfant()){
+                if (e.isEducationPartageeEnfant()) {
                     nbTrimestresEnfants += 2;
                 } else if (e.isEducationEnfant()) {
                     nbTrimestresEnfants += 4;

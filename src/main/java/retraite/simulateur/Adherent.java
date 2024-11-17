@@ -23,6 +23,16 @@ public class Adherent {
     private int methodeTaux;
     private Date dateSimulation = new Date();
     private List<Enfant> enfants;
+    @JsonProperty("carriereLongue")
+    private String carriereLongue;
+
+    public String getCarriereLongue() {
+        return carriereLongue;
+    }
+
+    public void setCarriereLongue(String carriereLongue) {
+        this.carriereLongue = carriereLongue;
+    }
 
     public int getMethodeTaux() {
         return methodeTaux;
