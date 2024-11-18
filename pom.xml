@@ -63,7 +63,7 @@
 					<region>westeurope</region>
 					<runtime>
 						<os>Linux</os>
-						<javaVersion>Java 8</javaVersion>
+						<javaVersion>Java 17</javaVersion>
 						<webContainer>JAVA</webContainer>
 					</runtime>
 				</configuration>
