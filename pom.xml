@@ -53,21 +53,6 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
-			<plugin>
-				<groupId>com.microsoft.azure</groupId>
-				<artifactId>azure-webapp-maven-plugin</artifactId>
-				<version>1.14.0</version>
-				<configuration>
-					<resourceGroup>thade-ramde</resourceGroup>
-					<appName>simulateur-retraite</appName>
-					<region>westeurope</region>
-					<runtime>
-						<os>Linux</os>
-						<javaVersion>Java 17</javaVersion>
-						<webContainer>JAVA</webContainer>
-					</runtime>
-				</configuration>
-			</plugin>
 		</plugins>
 	</build>
 

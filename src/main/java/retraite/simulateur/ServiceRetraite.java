@@ -46,8 +46,8 @@ public class ServiceRetraite {
         double epargneBrute = adherent.getSAM() * taux * fractionTrim * decoteAge;
 
         // Ajouter la surcote si applicable
-        double surcote = calculerSurcote(adherent);
-        epargneBrute *= surcote;
+        //double surcote = calculerSurcote(adherent);
+        //epargneBrute *= surcote;
 
         // Ajouter la majoration pour les enfants si applicable
         if (adherent.getNbEnfants() >= 3) {
